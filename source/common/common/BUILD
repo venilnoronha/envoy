@@ -17,6 +17,16 @@ envoy_cc_library(
 )
 
 envoy_cc_library(
+    name = "backoff_lib",
+    srcs = ["backoff_strategy.cc"],
+    hdrs = ["backoff_strategy.h"],
+    deps = [
+        ":assert_lib",
+        "//include/envoy/common:backoff_strategy_interface",
+    ],
+)
+
+envoy_cc_library(
     name = "base64_lib",
     srcs = ["base64.cc"],
     hdrs = ["base64.h"],
@@ -111,6 +121,21 @@ envoy_cc_library(
 envoy_cc_library(
     name = "macros",
     hdrs = ["macros.h"],
+)
+
+envoy_cc_library(
+    name = "matchers_lib",
+    srcs = ["matchers.cc"],
+    hdrs = ["matchers.h"],
+    external_deps = ["abseil_optional"],
+    deps = [
+        ":utility_lib",
+        "//source/common/config:metadata_lib",
+        "//source/common/protobuf",
+        "@envoy_api//envoy/type/matcher:metadata_cc",
+        "@envoy_api//envoy/type/matcher:number_cc",
+        "@envoy_api//envoy/type/matcher:string_cc",
+    ],
 )
 
 envoy_cc_library(

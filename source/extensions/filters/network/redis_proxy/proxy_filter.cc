@@ -21,7 +21,9 @@ ProxyFilterConfig::ProxyFilterConfig(
     : drain_decision_(drain_decision), runtime_(runtime), cluster_name_(config.cluster()),
       stat_prefix_(fmt::format("redis.{}.", config.stat_prefix())),
       stats_(generateStats(stat_prefix_, scope)) {
-  Config::Utility::checkCluster("redis", cluster_name_, cm);
+  if (!cluster_name_.empty()) {
+    Config::Utility::checkCluster("redis", cluster_name_, cm);
+  }
 }
 
 ProxyStats ProxyFilterConfig::generateStats(const std::string& prefix, Stats::Scope& scope) {
@@ -55,11 +57,15 @@ void ProxyFilter::initializeReadFilterCallbacks(Network::ReadFilterCallbacks& ca
 void ProxyFilter::onRespValue(RespValuePtr&& value) {
   pending_requests_.emplace_back(*this);
   PendingRequest& request = pending_requests_.back();
-  CommandSplitter::SplitRequestPtr split = splitter_.makeRequest(*value, request);
-  if (split) {
-    // The splitter can immediately respond and destroy the pending request. Only store the handle
-    // if the request is still alive.
-    request.request_handle_ = std::move(split);
+  if (splitter_ != nullptr) {
+    CommandSplitter::SplitRequestPtr split = splitter_.makeRequest(*value, request);
+    if (split) {
+      // The splitter can immediately respond and destroy the pending request. Only store the handle
+      // if the request is still alive.
+      request.request_handle_ = std::move(split);
+    }
+  } else {
+    // TODO: handle the request as-is i.e. without splitting
   }
 }
 

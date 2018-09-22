@@ -13,15 +13,7 @@ envoy_cc_library(
     hdrs = ["request_info.h"],
     external_deps = ["abseil_optional"],
     deps = [
-        ":filter_state_interface",
-        "//include/envoy/common:time_interface",
         "//include/envoy/http:protocol_interface",
-        "//include/envoy/upstream:upstream_interface",
+        "//include/envoy/stream_info:stream_info_interface",
     ],
-)
-
-envoy_cc_library(
-    name = "filter_state_interface",
-    hdrs = ["filter_state.h"],
-    external_deps = ["abseil_optional"],
 )

@@ -11,8 +11,8 @@
 #include "common/http/header_map_impl.h"
 #include "common/http/headers.h"
 #include "common/http/utility.h"
-#include "common/request_info/utility.h"
 #include "common/runtime/uuid_util.h"
+#include "common/stream_info/utility.h"
 
 namespace Envoy {
 namespace Tracing {
@@ -121,7 +121,7 @@ void HttpTracerUtility::finalizeSpan(Span& span, const Http::HeaderMap* request_
   span.setTag(Tracing::Tags::get().HTTP_STATUS_CODE, buildResponseCode(request_info));
   span.setTag(Tracing::Tags::get().RESPONSE_SIZE, std::to_string(request_info.bytesSent()));
   span.setTag(Tracing::Tags::get().RESPONSE_FLAGS,
-              RequestInfo::ResponseFlagUtils::toShortString(request_info));
+              StreamInfo::ResponseFlagUtils::toShortString(request_info));
 
   if (!request_info.responseCode() ||
       Http::CodeUtility::is5xx(request_info.responseCode().value())) {

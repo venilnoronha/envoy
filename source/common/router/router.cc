@@ -210,7 +210,7 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::HeaderMap& headers, bool e
     ENVOY_STREAM_LOG(debug, "no cluster match for URL '{}'", *callbacks_,
                      headers.Path()->value().c_str());
 
-    callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::NoRouteFound);
+    callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::NoRouteFound);
     callbacks_->sendLocalReply(Http::Code::NotFound, "", nullptr);
     return Http::FilterHeadersStatus::StopIteration;
   }
@@ -240,7 +240,7 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::HeaderMap& headers, bool e
     config_.stats_.no_cluster_.inc();
     ENVOY_STREAM_LOG(debug, "unknown cluster '{}'", *callbacks_, route_entry_->clusterName());
 
-    callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::NoRouteFound);
+    callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::NoRouteFound);
     callbacks_->sendLocalReply(route_entry_->clusterNotFoundResponseCode(), "", nullptr);
     return Http::FilterHeadersStatus::StopIteration;
   }
@@ -259,7 +259,7 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::HeaderMap& headers, bool e
 
   // See if we are supposed to immediately kill some percentage of this cluster's traffic.
   if (cluster_->maintenanceMode()) {
-    callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamOverflow);
+    callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamOverflow);
     chargeUpstreamCode(Http::Code::ServiceUnavailable, nullptr, true);
     callbacks_->sendLocalReply(
         Http::Code::ServiceUnavailable, "maintenance mode", [this](Http::HeaderMap& headers) {
@@ -328,7 +328,7 @@ Http::ConnectionPool::Instance* Filter::getConnPool() {
 }
 
 void Filter::sendNoHealthyUpstreamResponse() {
-  callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::NoHealthyUpstream);
+  callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::NoHealthyUpstream);
   chargeUpstreamCode(Http::Code::ServiceUnavailable, nullptr, false);
   callbacks_->sendLocalReply(Http::Code::ServiceUnavailable, "no healthy upstream", nullptr);
 }
@@ -480,7 +480,7 @@ void Filter::onUpstreamReset(UpstreamResetType type,
       }
       return;
     } else if (retry_status == RetryStatus::NoOverflow) {
-      callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamOverflow);
+      callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamOverflow);
     }
   }
 
@@ -499,12 +499,12 @@ void Filter::onUpstreamReset(UpstreamResetType type,
     Http::Code code;
     const char* body;
     if (type == UpstreamResetType::GlobalTimeout || type == UpstreamResetType::PerTryTimeout) {
-      callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamRequestTimeout);
+      callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamRequestTimeout);
 
       code = timeout_response_code_;
       body = code == Http::Code::GatewayTimeout ? "upstream request timeout" : "";
     } else {
-      RequestInfo::ResponseFlag response_flags =
+      StreamInfo::ResponseFlag response_flags =
           streamResetReasonToResponseFlag(reset_reason.value());
       callbacks_->requestInfo().setResponseFlag(response_flags);
       code = Http::Code::ServiceUnavailable;
@@ -528,21 +528,21 @@ void Filter::onUpstreamReset(UpstreamResetType type,
   }
 }
 
-RequestInfo::ResponseFlag
+StreamInfo::ResponseFlag
 Filter::streamResetReasonToResponseFlag(Http::StreamResetReason reset_reason) {
   switch (reset_reason) {
   case Http::StreamResetReason::ConnectionFailure:
-    return RequestInfo::ResponseFlag::UpstreamConnectionFailure;
+    return StreamInfo::ResponseFlag::UpstreamConnectionFailure;
   case Http::StreamResetReason::ConnectionTermination:
-    return RequestInfo::ResponseFlag::UpstreamConnectionTermination;
+    return StreamInfo::ResponseFlag::UpstreamConnectionTermination;
   case Http::StreamResetReason::LocalReset:
   case Http::StreamResetReason::LocalRefusedStreamReset:
-    return RequestInfo::ResponseFlag::LocalReset;
+    return StreamInfo::ResponseFlag::LocalReset;
   case Http::StreamResetReason::Overflow:
-    return RequestInfo::ResponseFlag::UpstreamOverflow;
+    return StreamInfo::ResponseFlag::UpstreamOverflow;
   case Http::StreamResetReason::RemoteReset:
   case Http::StreamResetReason::RemoteRefusedStreamReset:
-    return RequestInfo::ResponseFlag::UpstreamRemoteReset;
+    return StreamInfo::ResponseFlag::UpstreamRemoteReset;
   }
 
   throw std::invalid_argument("Unknown reset_reason");
@@ -606,7 +606,7 @@ void Filter::onUpstreamHeaders(const uint64_t response_code, Http::HeaderMapPtr&
       upstream_host->stats().rq_error_.inc();
       return;
     } else if (retry_status == RetryStatus::NoOverflow) {
-      callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamOverflow);
+      callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamOverflow);
     }
 
     // Make sure any retry timers are destroyed since we may not call cleanup() if end_stream is
@@ -948,7 +948,7 @@ void Filter::UpstreamRequest::onPerTryTimeout() {
       upstream_host_->stats().rq_timeout_.inc();
     }
     resetStream();
-    request_info_.setResponseFlag(RequestInfo::ResponseFlag::UpstreamRequestTimeout);
+    request_info_.setResponseFlag(StreamInfo::ResponseFlag::UpstreamRequestTimeout);
     parent_.onUpstreamReset(
         UpstreamResetType::PerTryTimeout,
         absl::optional<Http::StreamResetReason>(Http::StreamResetReason::LocalReset));

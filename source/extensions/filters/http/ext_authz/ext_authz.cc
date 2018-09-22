@@ -114,7 +114,7 @@ void Filter::onComplete(Filters::Common::ExtAuthz::ResponsePtr&& response) {
                                  }
                                });
     callbacks_->requestInfo().setResponseFlag(
-        RequestInfo::ResponseFlag::UnauthorizedExternalService);
+        StreamInfo::ResponseFlag::UnauthorizedExternalService);
   } else {
     ENVOY_STREAM_LOG(debug, "ext_authz accepted the request", *callbacks_);
     // Let the filter chain continue.

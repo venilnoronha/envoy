@@ -7,115 +7,81 @@
 #include "envoy/request_info/request_info.h"
 
 #include "common/common/assert.h"
-#include "common/request_info/filter_state_impl.h"
+#include "common/stream_info/stream_info_impl.h"
 
 namespace Envoy {
 namespace RequestInfo {
 
-struct RequestInfoImpl : public RequestInfo {
-  explicit RequestInfoImpl(TimeSource& time_source)
-      : time_source_(time_source), start_time_(time_source.systemTime()),
-        start_time_monotonic_(time_source.monotonicTime()) {}
+struct RequestInfoImpl : public RequestInfo, Envoy::StreamInfo::StreamInfoImpl {
+  explicit RequestInfoImpl(TimeSource& time_source) : RequestInfo(), StreamInfoImpl(time_source) {}
 
   RequestInfoImpl(Http::Protocol protocol, TimeSource& time_source) : RequestInfoImpl(time_source) {
     protocol_ = protocol;
   }
 
-  SystemTime startTime() const override { return start_time_; }
+  SystemTime startTime() const override { return StreamInfoImpl::startTime(); }
 
-  MonotonicTime startTimeMonotonic() const override { return start_time_monotonic_; }
-
-  absl::optional<std::chrono::nanoseconds> duration(absl::optional<MonotonicTime> time) const {
-    if (!time) {
-      return {};
-    }
-
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(time.value() -
-                                                                start_time_monotonic_);
-  }
+  MonotonicTime startTimeMonotonic() const override { return StreamInfoImpl::startTimeMonotonic(); }
 
   absl::optional<std::chrono::nanoseconds> lastDownstreamRxByteReceived() const override {
-    return duration(last_downstream_rx_byte_received);
+    return StreamInfoImpl::lastDownstreamRxByteReceived();
   }
 
   void onLastDownstreamRxByteReceived() override {
-    ASSERT(!last_downstream_rx_byte_received);
-    last_downstream_rx_byte_received = time_source_.monotonicTime();
+    StreamInfoImpl::onLastDownstreamRxByteReceived();
   }
 
   absl::optional<std::chrono::nanoseconds> firstUpstreamTxByteSent() const override {
-    return duration(first_upstream_tx_byte_sent_);
+    return firstUpstreamTxByteSent();
   }
 
-  void onFirstUpstreamTxByteSent() override {
-    ASSERT(!first_upstream_tx_byte_sent_);
-    first_upstream_tx_byte_sent_ = time_source_.monotonicTime();
-  }
+  void onFirstUpstreamTxByteSent() override { StreamInfoImpl::onFirstUpstreamTxByteSent(); }
 
   absl::optional<std::chrono::nanoseconds> lastUpstreamTxByteSent() const override {
-    return duration(last_upstream_tx_byte_sent_);
+    return StreamInfoImpl::lastUpstreamTxByteSent();
   }
 
-  void onLastUpstreamTxByteSent() override {
-    ASSERT(!last_upstream_tx_byte_sent_);
-    last_upstream_tx_byte_sent_ = time_source_.monotonicTime();
-  }
+  void onLastUpstreamTxByteSent() override { StreamInfoImpl::onLastUpstreamTxByteSent(); }
 
   absl::optional<std::chrono::nanoseconds> firstUpstreamRxByteReceived() const override {
-    return duration(first_upstream_rx_byte_received_);
+    return StreamInfoImpl::firstUpstreamRxByteReceived();
   }
 
-  void onFirstUpstreamRxByteReceived() override {
-    ASSERT(!first_upstream_rx_byte_received_);
-    first_upstream_rx_byte_received_ = time_source_.monotonicTime();
-  }
+  void onFirstUpstreamRxByteReceived() override { StreamInfoImpl::onFirstUpstreamRxByteReceived(); }
 
   absl::optional<std::chrono::nanoseconds> lastUpstreamRxByteReceived() const override {
-    return duration(last_upstream_rx_byte_received_);
+    return StreamInfoImpl::lastUpstreamRxByteReceived();
   }
 
-  void onLastUpstreamRxByteReceived() override {
-    ASSERT(!last_upstream_rx_byte_received_);
-    last_upstream_rx_byte_received_ = time_source_.monotonicTime();
-  }
+  void onLastUpstreamRxByteReceived() override { StreamInfoImpl::onLastUpstreamRxByteReceived(); }
 
   absl::optional<std::chrono::nanoseconds> firstDownstreamTxByteSent() const override {
-    return duration(first_downstream_tx_byte_sent_);
+    return StreamInfoImpl::firstDownstreamTxByteSent();
   }
 
   void onFirstDownstreamTxByteSent() override {
-    ASSERT(!first_downstream_tx_byte_sent_);
-    first_downstream_tx_byte_sent_ = time_source_.monotonicTime();
+    return StreamInfoImpl::onFirstDownstreamTxByteSent();
   }
 
   absl::optional<std::chrono::nanoseconds> lastDownstreamTxByteSent() const override {
-    return duration(last_downstream_tx_byte_sent_);
+    return StreamInfoImpl::lastDownstreamTxByteSent();
   }
 
-  void onLastDownstreamTxByteSent() override {
-    ASSERT(!last_downstream_tx_byte_sent_);
-    last_downstream_tx_byte_sent_ = time_source_.monotonicTime();
-  }
+  void onLastDownstreamTxByteSent() override { StreamInfoImpl::onLastDownstreamTxByteSent(); }
 
   absl::optional<std::chrono::nanoseconds> requestComplete() const override {
-    return duration(final_time_);
+    return StreamInfoImpl::requestComplete();
   }
 
-  void onRequestComplete() override {
-    ASSERT(!final_time_);
-    final_time_ = time_source_.monotonicTime();
+  void onRequestComplete() override { StreamInfoImpl::onRequestComplete(); }
+
+  void resetUpstreamTimings() override { StreamInfoImpl::resetUpstreamTimings(); }
+
+  void addBytesReceived(uint64_t bytes_received) override {
+    StreamInfoImpl::addBytesReceived(bytes_received);
   }
 
-  void resetUpstreamTimings() override {
-    first_upstream_tx_byte_sent_ = absl::optional<MonotonicTime>{};
-    last_upstream_tx_byte_sent_ = absl::optional<MonotonicTime>{};
-    first_upstream_rx_byte_received_ = absl::optional<MonotonicTime>{};
-    last_upstream_rx_byte_received_ = absl::optional<MonotonicTime>{};
-  }
-
-  void addBytesReceived(uint64_t bytes_received) override { bytes_received_ += bytes_received; }
-
-  uint64_t bytesReceived() const override { return bytes_received_; }
+  uint64_t bytesReceived() const override { return StreamInfoImpl::bytesReceived(); }
 
   absl::optional<Http::Protocol> protocol() const override { return protocol_; }
 
@@ -123,103 +89,90 @@ struct RequestInfoImpl : public RequestInfo {
 
   absl::optional<uint32_t> responseCode() const override { return response_code_; }
 
-  void addBytesSent(uint64_t bytes_sent) override { bytes_sent_ += bytes_sent; }
+  void addBytesSent(uint64_t bytes_sent) override { StreamInfoImpl::addBytesSent(bytes_sent); }
 
-  uint64_t bytesSent() const override { return bytes_sent_; }
+  uint64_t bytesSent() const override { return StreamInfoImpl::bytesSent(); }
 
-  void setResponseFlag(ResponseFlag response_flag) override { response_flags_ |= response_flag; }
+  void setResponseFlag(Envoy::StreamInfo::ResponseFlag response_flag) override {
+    StreamInfoImpl::setResponseFlag(response_flag);
+  }
 
   bool intersectResponseFlags(uint64_t response_flags) const override {
-    return (response_flags_ & response_flags) != 0;
+    return StreamInfoImpl::intersectResponseFlags(response_flags);
   }
 
-  bool hasResponseFlag(ResponseFlag flag) const override { return response_flags_ & flag; }
+  bool hasResponseFlag(Envoy::StreamInfo::ResponseFlag flag) const override {
+    return StreamInfoImpl::hasResponseFlag(flag);
+  }
 
-  bool hasAnyResponseFlag() const override { return response_flags_ != 0; }
+  bool hasAnyResponseFlag() const override { return StreamInfoImpl::hasAnyResponseFlag(); }
 
   void onUpstreamHostSelected(Upstream::HostDescriptionConstSharedPtr host) override {
-    upstream_host_ = host;
+    StreamInfoImpl::onUpstreamHostSelected(host);
   }
 
-  Upstream::HostDescriptionConstSharedPtr upstreamHost() const override { return upstream_host_; }
+  Upstream::HostDescriptionConstSharedPtr upstreamHost() const override {
+    return StreamInfoImpl::upstreamHost();
+  }
 
   void setUpstreamLocalAddress(
       const Network::Address::InstanceConstSharedPtr& upstream_local_address) override {
-    upstream_local_address_ = upstream_local_address;
+    StreamInfoImpl::setUpstreamLocalAddress(upstream_local_address);
   }
 
   const Network::Address::InstanceConstSharedPtr& upstreamLocalAddress() const override {
-    return upstream_local_address_;
+    return StreamInfoImpl::upstreamLocalAddress();
   }
 
-  bool healthCheck() const override { return hc_request_; }
+  bool healthCheck() const override { return StreamInfoImpl::healthCheck(); }
 
-  void healthCheck(bool is_hc) override { hc_request_ = is_hc; }
+  void healthCheck(bool is_hc) override { StreamInfoImpl::healthCheck(is_hc); }
 
   void setDownstreamLocalAddress(
       const Network::Address::InstanceConstSharedPtr& downstream_local_address) override {
-    downstream_local_address_ = downstream_local_address;
+    StreamInfoImpl::setDownstreamLocalAddress(downstream_local_address);
   }
 
   const Network::Address::InstanceConstSharedPtr& downstreamLocalAddress() const override {
-    return downstream_local_address_;
+    return StreamInfoImpl::downstreamLocalAddress();
   }
 
   void setDownstreamRemoteAddress(
       const Network::Address::InstanceConstSharedPtr& downstream_remote_address) override {
-    downstream_remote_address_ = downstream_remote_address;
+    StreamInfoImpl::setDownstreamRemoteAddress(downstream_remote_address);
   }
 
   const Network::Address::InstanceConstSharedPtr& downstreamRemoteAddress() const override {
-    return downstream_remote_address_;
+    return StreamInfoImpl::downstreamRemoteAddress();
   }
 
-  const Router::RouteEntry* routeEntry() const override { return route_entry_; }
+  const Router::RouteEntry* routeEntry() const override { return StreamInfoImpl::routeEntry(); }
 
-  const envoy::api::v2::core::Metadata& dynamicMetadata() const override { return metadata_; };
-
-  void setDynamicMetadata(const std::string& name, const ProtobufWkt::Struct& value) override {
-    (*metadata_.mutable_filter_metadata())[name].MergeFrom(value);
+  const envoy::api::v2::core::Metadata& dynamicMetadata() const override {
+    return StreamInfoImpl::dynamicMetadata();
   };
 
-  FilterState& perRequestState() override { return per_request_state_; }
-  const FilterState& perRequestState() const override { return per_request_state_; }
+  void setDynamicMetadata(const std::string& name, const ProtobufWkt::Struct& value) override {
+    StreamInfoImpl::setDynamicMetadata(name, value);
+  };
 
-  void setRequestedServerName(absl::string_view requested_server_name) override {
-    requested_server_name_ = std::string(requested_server_name);
+  Envoy::StreamInfo::FilterState& perRequestState() override {
+    return StreamInfoImpl::perRequestState();
+  }
+  const Envoy::StreamInfo::FilterState& perRequestState() const override {
+    return StreamInfoImpl::perRequestState();
   }
 
-  const std::string& requestedServerName() const override { return requested_server_name_; }
+  void setRequestedServerName(absl::string_view requested_server_name) override {
+    StreamInfoImpl::setRequestedServerName(requested_server_name);
+  }
 
-  TimeSource& time_source_;
-  const SystemTime start_time_;
-  const MonotonicTime start_time_monotonic_;
-
-  absl::optional<MonotonicTime> last_downstream_rx_byte_received;
-  absl::optional<MonotonicTime> first_upstream_tx_byte_sent_;
-  absl::optional<MonotonicTime> last_upstream_tx_byte_sent_;
-  absl::optional<MonotonicTime> first_upstream_rx_byte_received_;
-  absl::optional<MonotonicTime> last_upstream_rx_byte_received_;
-  absl::optional<MonotonicTime> first_downstream_tx_byte_sent_;
-  absl::optional<MonotonicTime> last_downstream_tx_byte_sent_;
-  absl::optional<MonotonicTime> final_time_;
+  const std::string& requestedServerName() const override {
+    return StreamInfoImpl::requestedServerName();
+  }
 
   absl::optional<Http::Protocol> protocol_;
   absl::optional<uint32_t> response_code_;
-  uint64_t response_flags_{};
-  Upstream::HostDescriptionConstSharedPtr upstream_host_{};
-  bool hc_request_{};
-  const Router::RouteEntry* route_entry_{};
-  envoy::api::v2::core::Metadata metadata_{};
-  FilterStateImpl per_request_state_{};
-
-private:
-  uint64_t bytes_received_{};
-  uint64_t bytes_sent_{};
-  Network::Address::InstanceConstSharedPtr upstream_local_address_;
-  Network::Address::InstanceConstSharedPtr downstream_local_address_;
-  Network::Address::InstanceConstSharedPtr downstream_remote_address_;
-  std::string requested_server_name_;
 };
 
 } // namespace RequestInfo

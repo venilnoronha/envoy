@@ -97,7 +97,7 @@ void HealthCheckFilter::onComplete() {
   ASSERT(handling_);
   Http::Code final_status = Http::Code::OK;
   if (context_.healthCheckFailed()) {
-    callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::FailedLocalHealthCheck);
+    callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::FailedLocalHealthCheck);
     final_status = Http::Code::ServiceUnavailable;
   } else {
     if (cache_manager_) {
@@ -139,7 +139,7 @@ void HealthCheckFilter::onComplete() {
     }
 
     if (!Http::CodeUtility::is2xx(enumToInt(final_status))) {
-      callbacks_->requestInfo().setResponseFlag(RequestInfo::ResponseFlag::FailedLocalHealthCheck);
+      callbacks_->requestInfo().setResponseFlag(StreamInfo::ResponseFlag::FailedLocalHealthCheck);
     }
   }
 

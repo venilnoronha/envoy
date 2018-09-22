@@ -3,7 +3,7 @@
 #include "common/common/assert.h"
 #include "common/http/header_map_impl.h"
 #include "common/network/utility.h"
-#include "common/request_info/utility.h"
+#include "common/stream_info/utility.h"
 
 namespace Envoy {
 namespace Extensions {
@@ -85,64 +85,64 @@ void HttpGrpcAccessLog::responseFlagsToAccessLogResponseFlags(
     envoy::data::accesslog::v2::AccessLogCommon& common_access_log,
     const RequestInfo::RequestInfo& request_info) {
 
-  static_assert(RequestInfo::ResponseFlag::LastFlag == 0x2000,
+  static_assert(StreamInfo::ResponseFlag::LastFlag == 0x2000,
                 "A flag has been added. Fix this code.");
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::FailedLocalHealthCheck)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::FailedLocalHealthCheck)) {
     common_access_log.mutable_response_flags()->set_failed_local_healthcheck(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::NoHealthyUpstream)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::NoHealthyUpstream)) {
     common_access_log.mutable_response_flags()->set_no_healthy_upstream(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UpstreamRequestTimeout)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UpstreamRequestTimeout)) {
     common_access_log.mutable_response_flags()->set_upstream_request_timeout(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::LocalReset)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::LocalReset)) {
     common_access_log.mutable_response_flags()->set_local_reset(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UpstreamRemoteReset)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UpstreamRemoteReset)) {
     common_access_log.mutable_response_flags()->set_upstream_remote_reset(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UpstreamConnectionFailure)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UpstreamConnectionFailure)) {
     common_access_log.mutable_response_flags()->set_upstream_connection_failure(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UpstreamConnectionTermination)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UpstreamConnectionTermination)) {
     common_access_log.mutable_response_flags()->set_upstream_connection_termination(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UpstreamOverflow)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UpstreamOverflow)) {
     common_access_log.mutable_response_flags()->set_upstream_overflow(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::NoRouteFound)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::NoRouteFound)) {
     common_access_log.mutable_response_flags()->set_no_route_found(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::DelayInjected)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::DelayInjected)) {
     common_access_log.mutable_response_flags()->set_delay_injected(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::FaultInjected)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::FaultInjected)) {
     common_access_log.mutable_response_flags()->set_fault_injected(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::RateLimited)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::RateLimited)) {
     common_access_log.mutable_response_flags()->set_rate_limited(true);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::UnauthorizedExternalService)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::UnauthorizedExternalService)) {
     common_access_log.mutable_response_flags()->mutable_unauthorized_details()->set_reason(
         envoy::data::accesslog::v2::ResponseFlags_Unauthorized_Reason::
             ResponseFlags_Unauthorized_Reason_EXTERNAL_SERVICE);
   }
 
-  if (request_info.hasResponseFlag(RequestInfo::ResponseFlag::RateLimitServiceError)) {
+  if (request_info.hasResponseFlag(StreamInfo::ResponseFlag::RateLimitServiceError)) {
     common_access_log.mutable_response_flags()->set_rate_limit_service_error(true);
   }
 }

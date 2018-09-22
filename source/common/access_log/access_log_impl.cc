@@ -19,8 +19,8 @@
 #include "common/http/headers.h"
 #include "common/http/utility.h"
 #include "common/protobuf/utility.h"
-#include "common/request_info/utility.h"
 #include "common/runtime/uuid_util.h"
+#include "common/stream_info/utility.h"
 #include "common/tracing/http_tracer_impl.h"
 
 #include "absl/types/optional.h"
@@ -183,8 +183,8 @@ bool HeaderFilter::evaluate(const RequestInfo::RequestInfo&,
 ResponseFlagFilter::ResponseFlagFilter(
     const envoy::config::filter::accesslog::v2::ResponseFlagFilter& config) {
   for (int i = 0; i < config.flags_size(); i++) {
-    absl::optional<RequestInfo::ResponseFlag> response_flag =
-        RequestInfo::ResponseFlagUtils::toResponseFlag(config.flags(i));
+    absl::optional<StreamInfo::ResponseFlag> response_flag =
+        StreamInfo::ResponseFlagUtils::toResponseFlag(config.flags(i));
     // The config has been validated. Therefore, every flag in the config will have a mapping.
     ASSERT(response_flag.has_value());
     configured_flags_ |= response_flag.value();

@@ -11,7 +11,7 @@
 #include "common/config/metadata.h"
 #include "common/http/header_map_impl.h"
 #include "common/json/json_loader.h"
-#include "common/request_info/utility.h"
+#include "common/stream_info/utility.h"
 
 #include "absl/strings/str_cat.h"
 #include "absl/types/optional.h"
@@ -142,7 +142,7 @@ parsePerRequestStateField(absl::string_view param_str) {
 
   std::string param(modified_param_str);
   return [param](const Envoy::RequestInfo::RequestInfo& request_info) -> std::string {
-    const Envoy::RequestInfo::FilterState& per_request_state = request_info.perRequestState();
+    const Envoy::StreamInfo::FilterState& per_request_state = request_info.perRequestState();
 
     // No such value means don't output anything.
     if (!per_request_state.hasDataWithName(param)) {
@@ -172,7 +172,7 @@ RequestInfoHeaderFormatter::RequestInfoHeaderFormatter(absl::string_view field_n
     };
   } else if (field_name == "DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT") {
     field_extractor_ = [](const Envoy::RequestInfo::RequestInfo& request_info) {
-      return RequestInfo::Utility::formatDownstreamAddressNoPort(
+      return StreamInfo::Utility::formatDownstreamAddressNoPort(
           *request_info.downstreamRemoteAddress());
     };
   } else if (field_name == "DOWNSTREAM_LOCAL_ADDRESS") {
@@ -181,7 +181,7 @@ RequestInfoHeaderFormatter::RequestInfoHeaderFormatter(absl::string_view field_n
     };
   } else if (field_name == "DOWNSTREAM_LOCAL_ADDRESS_WITHOUT_PORT") {
     field_extractor_ = [](const Envoy::RequestInfo::RequestInfo& request_info) {
-      return RequestInfo::Utility::formatDownstreamAddressNoPort(
+      return StreamInfo::Utility::formatDownstreamAddressNoPort(
           *request_info.downstreamLocalAddress());
     };
   } else if (field_name.find("START_TIME") == 0) {

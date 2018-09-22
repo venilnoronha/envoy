@@ -9,7 +9,7 @@
 #include "common/common/utility.h"
 #include "common/config/metadata.h"
 #include "common/http/utility.h"
-#include "common/request_info/utility.h"
+#include "common/stream_info/utility.h"
 
 #include "absl/strings/str_split.h"
 #include "fmt/format.h"
@@ -258,7 +258,7 @@ RequestInfoFormatter::RequestInfoFormatter(const std::string& field_name) {
     };
   } else if (field_name == "RESPONSE_FLAGS") {
     field_extractor_ = [](const RequestInfo::RequestInfo& request_info) {
-      return RequestInfo::ResponseFlagUtils::toShortString(request_info);
+      return StreamInfo::ResponseFlagUtils::toShortString(request_info);
     };
   } else if (field_name == "UPSTREAM_HOST") {
     field_extractor_ = [](const RequestInfo::RequestInfo& request_info) {
@@ -289,7 +289,7 @@ RequestInfoFormatter::RequestInfoFormatter(const std::string& field_name) {
     };
   } else if (field_name == "DOWNSTREAM_LOCAL_ADDRESS_WITHOUT_PORT") {
     field_extractor_ = [](const Envoy::RequestInfo::RequestInfo& request_info) {
-      return RequestInfo::Utility::formatDownstreamAddressNoPort(
+      return StreamInfo::Utility::formatDownstreamAddressNoPort(
           *request_info.downstreamLocalAddress());
     };
   } else if (field_name == "DOWNSTREAM_REMOTE_ADDRESS") {
@@ -298,7 +298,7 @@ RequestInfoFormatter::RequestInfoFormatter(const std::string& field_name) {
     };
   } else if (field_name == "DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT") {
     field_extractor_ = [](const RequestInfo::RequestInfo& request_info) {
-      return RequestInfo::Utility::formatDownstreamAddressNoPort(
+      return StreamInfo::Utility::formatDownstreamAddressNoPort(
           *request_info.downstreamRemoteAddress());
     };
   } else if (field_name == "REQUESTED_SERVER_NAME") {

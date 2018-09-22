@@ -295,7 +295,7 @@ Network::FilterStatus Filter::initializeUpstreamConnection() {
                    cluster_name);
   } else {
     config_->stats().downstream_cx_no_route_.inc();
-    getRequestInfo().setResponseFlag(RequestInfo::ResponseFlag::NoRouteFound);
+    getRequestInfo().setResponseFlag(StreamInfo::ResponseFlag::NoRouteFound);
     onInitFailure(UpstreamFailureReason::NO_ROUTE);
     return Network::FilterStatus::StopIteration;
   }
@@ -305,7 +305,7 @@ Network::FilterStatus Filter::initializeUpstreamConnection() {
   // Check this here because the TCP conn pool will queue our request waiting for a connection that
   // will never be released.
   if (!cluster->resourceManager(Upstream::ResourcePriority::Default).connections().canCreate()) {
-    getRequestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamOverflow);
+    getRequestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamOverflow);
     cluster->stats().upstream_cx_overflow_.inc();
     onInitFailure(UpstreamFailureReason::RESOURCE_LIMIT_EXCEEDED);
     return Network::FilterStatus::StopIteration;
@@ -323,7 +323,7 @@ Network::FilterStatus Filter::initializeUpstreamConnection() {
   if (!conn_pool) {
     // Either cluster is unknown or there are no healthy hosts. tcpConnPoolForCluster() increments
     // cluster->stats().upstream_cx_none_healthy in the latter case.
-    getRequestInfo().setResponseFlag(RequestInfo::ResponseFlag::NoHealthyUpstream);
+    getRequestInfo().setResponseFlag(StreamInfo::ResponseFlag::NoHealthyUpstream);
     onInitFailure(UpstreamFailureReason::NO_HEALTHY_UPSTREAM);
     return Network::FilterStatus::StopIteration;
   }
@@ -387,7 +387,7 @@ void Filter::onPoolReady(Tcp::ConnectionPool::ConnectionDataPtr&& conn_data,
 void Filter::onConnectTimeout() {
   ENVOY_CONN_LOG(debug, "connect timeout", read_callbacks_->connection());
   read_callbacks_->upstreamHost()->outlierDetector().putResult(Upstream::Outlier::Result::TIMEOUT);
-  getRequestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamConnectionFailure);
+  getRequestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamConnectionFailure);
 
   // Raise LocalClose, which will trigger a reconnect if needed/configured.
   upstream_callbacks_->onEvent(Network::ConnectionEvent::LocalClose);
@@ -456,7 +456,7 @@ void Filter::onUpstreamEvent(Network::ConnectionEvent event) {
 
     if (connecting) {
       if (event == Network::ConnectionEvent::RemoteClose) {
-        getRequestInfo().setResponseFlag(RequestInfo::ResponseFlag::UpstreamConnectionFailure);
+        getRequestInfo().setResponseFlag(StreamInfo::ResponseFlag::UpstreamConnectionFailure);
         read_callbacks_->upstreamHost()->outlierDetector().putResult(
             Upstream::Outlier::Result::CONNECT_FAILED);
       }

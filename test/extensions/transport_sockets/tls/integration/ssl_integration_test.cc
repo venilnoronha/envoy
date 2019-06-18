@@ -36,7 +36,7 @@ void SslIntegrationTestBase::initialize() {
   HttpIntegrationTest::initialize();
 
   context_manager_ =
-      std::make_unique<Extensions::TransportSockets::Tls::ContextManagerImpl>(timeSystem());
+      std::make_unique<Envoy::Extensions::TransportSockets::Tls::ContextManagerImpl>(timeSystem());
 
   registerTestServerPorts({"http"});
 }
@@ -77,9 +77,9 @@ void SslIntegrationTestBase::checkStats() {
   counter->reset();
 }
 
-INSTANTIATE_TEST_SUITE_P(IpVersions, SslIntegrationTest,
-                         testing::ValuesIn(TestEnvironment::getIpVersionsForTest()),
-                         TestUtility::ipTestParamsToString);
+INSTANTIATE_TEST_CASE_P(IpVersions, SslIntegrationTest,
+                        testing::ValuesIn(TestEnvironment::getIpVersionsForTest()),
+                        TestUtility::ipTestParamsToString);
 
 TEST_P(SslIntegrationTest, RouterRequestAndResponseWithGiantBodyBuffer) {
   ConnectionCreationFunction creator = [&]() -> Network::ClientConnectionPtr {
@@ -175,9 +175,9 @@ TEST_P(SslIntegrationTest, AdminCertEndpoint) {
 
 // Validate certificate selection across different certificate types and client TLS versions.
 class SslCertficateIntegrationTest
-    : public testing::TestWithParam<
-          std::tuple<Network::Address::IpVersion, envoy::api::v2::auth::TlsParameters_TlsProtocol>>,
-      public SslIntegrationTestBase {
+    : public SslIntegrationTestBase,
+      public testing::TestWithParam<std::tuple<Network::Address::IpVersion,
+                                               envoy::api::v2::auth::TlsParameters_TlsProtocol>> {
 public:
   SslCertficateIntegrationTest() : SslIntegrationTestBase(std::get<0>(GetParam())) {
     server_tlsv1_3_ = true;
@@ -210,7 +210,7 @@ public:
   }
 
   static std::string ipClientVersionTestParamsToString(
-      const ::testing::TestParamInfo<
+      const testing::TestParamInfo<
           std::tuple<Network::Address::IpVersion, envoy::api::v2::auth::TlsParameters_TlsProtocol>>&
           params) {
     return fmt::format("{}_TLSv1_{}",
@@ -222,12 +222,28 @@ public:
   const envoy::api::v2::auth::TlsParameters_TlsProtocol tls_version_{std::get<1>(GetParam())};
 };
 
-INSTANTIATE_TEST_SUITE_P(
+class Tlsv1_2CertficateIntegrationTest : public SslCertficateIntegrationTest {};
+
+class Tlsv1_3CertficateIntegrationTest : public SslCertficateIntegrationTest {};
+
+INSTANTIATE_TEST_CASE_P(
     IpVersionsClientVersions, SslCertficateIntegrationTest,
     testing::Combine(testing::ValuesIn(TestEnvironment::getIpVersionsForTest()),
                      testing::Values(envoy::api::v2::auth::TlsParameters::TLSv1_2,
                                      envoy::api::v2::auth::TlsParameters::TLSv1_3)),
     SslCertficateIntegrationTest::ipClientVersionTestParamsToString);
+
+INSTANTIATE_TEST_CASE_P(
+    IpVersionsClientVersions, Tlsv1_2CertficateIntegrationTest,
+    testing::Combine(testing::ValuesIn(TestEnvironment::getIpVersionsForTest()),
+                     testing::Values(envoy::api::v2::auth::TlsParameters::TLSv1_2)),
+    Tlsv1_2CertficateIntegrationTest::ipClientVersionTestParamsToString);
+
+INSTANTIATE_TEST_CASE_P(
+    IpVersionsClientVersions, Tlsv1_3CertficateIntegrationTest,
+    testing::Combine(testing::ValuesIn(TestEnvironment::getIpVersionsForTest()),
+                     testing::Values(envoy::api::v2::auth::TlsParameters::TLSv1_3)),
+    Tlsv1_3CertficateIntegrationTest::ipClientVersionTestParamsToString);
 
 // Server with an RSA certificate and a client with RSA/ECDSA cipher suites works.
 TEST_P(SslCertficateIntegrationTest, ServerRsa) {
@@ -274,17 +290,30 @@ TEST_P(SslCertficateIntegrationTest, ClientRsaOnly) {
 }
 
 // Server has only an ECDSA certificate, client is only RSA capable, leads to a connection fail.
-TEST_P(SslCertficateIntegrationTest, ServerEcdsaClientRsaOnly) {
+TEST_P(Tlsv1_2CertficateIntegrationTest, ServerEcdsaClientRsaOnly) {
   server_rsa_cert_ = false;
   server_ecdsa_cert_ = true;
   initialize();
   auto codec_client = makeRawHttpConnection(makeSslClientConnection(rsaOnlyClientOptions()));
-  EXPECT_FALSE(codec_client->connected());
-  const std::string counter_name = listenerStatPrefix("ssl.connection_error");
-  Stats::CounterSharedPtr counter = test_server_->counter(counter_name);
-  test_server_->waitForCounterGe(counter_name, 1);
-  EXPECT_EQ(1U, counter->value());
-  counter->reset();
+}
+
+TEST_P(Tlsv1_3CertficateIntegrationTest, ServerEcdsaClientRsaOnly) {
+#ifdef NDEBUG
+  server_rsa_cert_ = false;
+  server_ecdsa_cert_ = true;
+  initialize();
+
+  auto codec_client = makeRawHttpConnection(makeSslClientConnection(rsaOnlyClientOptions()));
+#else
+  EXPECT_DEATH(
+      {
+        server_rsa_cert_ = false;
+        server_ecdsa_cert_ = true;
+        initialize();
+        auto codec_client = makeRawHttpConnection(makeSslClientConnection(rsaOnlyClientOptions()));
+      },
+      "ConnectionImpl was unexpectedly torn down without being closed");
+#endif
 }
 
 // Server with RSA/ECDSA certificates and a client with only RSA cipher suites works.
@@ -299,18 +328,46 @@ TEST_P(SslCertficateIntegrationTest, ServerRsaEcdsaClientRsaOnly) {
 }
 
 // Server has only an RSA certificate, client is only ECDSA capable, leads to connection fail.
-TEST_P(SslCertficateIntegrationTest, ServerRsaClientEcdsaOnly) {
+TEST_P(Tlsv1_2CertficateIntegrationTest, ServerRsaClientEcdsaOnly) {
   server_rsa_cert_ = true;
   server_ecdsa_cert_ = false;
   client_ecdsa_cert_ = true;
   initialize();
   EXPECT_FALSE(
       makeRawHttpConnection(makeSslClientConnection(ecdsaOnlyClientOptions()))->connected());
-  const std::string counter_name = listenerStatPrefix("ssl.connection_error");
-  Stats::CounterSharedPtr counter = test_server_->counter(counter_name);
-  test_server_->waitForCounterGe(counter_name, 1);
+  Stats::CounterSharedPtr counter =
+      test_server_->counter(listenerStatPrefix("ssl.connection_error"));
   EXPECT_EQ(1U, counter->value());
   counter->reset();
+}
+
+TEST_P(Tlsv1_3CertficateIntegrationTest, ServerRsaClientEcdsaOnly) {
+#ifdef NDEBUG
+  server_rsa_cert_ = true;
+  server_ecdsa_cert_ = false;
+  client_ecdsa_cert_ = true;
+  initialize();
+  EXPECT_TRUE(
+	makeRawHttpConnection(makeSslClientConnection(ecdsaOnlyClientOptions()))->connected());
+  Stats::CounterSharedPtr counter = test_server_->counter(listenerStatPrefix("ssl.connection_error"));
+  EXPECT_EQ(0U, counter->value());
+  counter->reset();
+#else
+  EXPECT_DEATH(
+	{
+	  server_rsa_cert_ = true;
+	  server_ecdsa_cert_ = false;
+	  client_ecdsa_cert_ = true;
+	  initialize();
+	  EXPECT_FALSE(
+		  makeRawHttpConnection(makeSslClientConnection(ecdsaOnlyClientOptions()))->connected());
+	  Stats::CounterSharedPtr counter =
+		  test_server_->counter(listenerStatPrefix("ssl.connection_error"));
+	  EXPECT_EQ(1U, counter->value());
+	  counter->reset();
+	},
+  "ConnectionImpl was unexpectedly torn down without being closed");
+#endif
 }
 
 // Server has only an ECDSA certificate, client is only ECDSA capable works.
@@ -326,7 +383,32 @@ TEST_P(SslCertficateIntegrationTest, ServerEcdsaClientEcdsaOnly) {
 }
 
 // Server has RSA/ECDSA certificates, client is only ECDSA capable works.
-TEST_P(SslCertficateIntegrationTest, ServerRsaEcdsaClientEcdsaOnly) {
+TEST_P(Tlsv1_2CertficateIntegrationTest, ServerRsaEcdsaClientEcdsaOnly) {
+#ifdef NDEBUG
+	server_rsa_cert_ = true;
+	server_ecdsa_cert_ = true;
+	client_ecdsa_cert_ = true;
+	ConnectionCreationFunction creator = [&]() -> Network::ClientConnectionPtr {
+	  Network::ClientConnectionPtr connection = makeSslClientConnection(ecdsaOnlyClientOptions());
+	  EXPECT_FALSE(connection);
+	};
+#else
+	EXPECT_DEATH(
+      {
+        server_rsa_cert_ = true;
+        server_ecdsa_cert_ = true;
+        client_ecdsa_cert_ = true;
+        ConnectionCreationFunction creator = [&]() -> Network::ClientConnectionPtr {
+          return makeSslClientConnection(ecdsaOnlyClientOptions());
+        };
+        testRouterRequestAndResponseWithBody(1024, 512, false, &creator);
+        checkStats();
+      },
+      "ConnectionImpl file event was unexpectedly reset");
+#endif
+}
+
+TEST_P(Tlsv1_3CertficateIntegrationTest, ServerRsaEcdsaClientEcdsaOnly) {
   server_rsa_cert_ = true;
   server_ecdsa_cert_ = true;
   client_ecdsa_cert_ = true;

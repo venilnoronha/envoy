@@ -41,7 +41,6 @@ using testing::StrictMock;
 
 namespace Envoy {
 namespace Network {
-namespace {
 
 TEST(RawBufferSocket, TestBasics) {
   TransportSocketPtr raw_buffer_socket(Network::Test::createRawBufferSocket());
@@ -79,7 +78,9 @@ INSTANTIATE_TEST_SUITE_P(IpVersions, ConnectionImplDeathTest,
                          TestUtility::ipTestParamsToString);
 
 TEST_P(ConnectionImplDeathTest, BadFd) {
-  Api::ApiPtr api = Api::createApiForTest();
+  Stats::IsolatedStoreImpl stats_store;
+  Event::SimulatedTimeSystem time_system;
+  Api::ApiPtr api = Api::createApiForTest(stats_store);
   Event::DispatcherPtr dispatcher(api->allocateDispatcher());
   IoHandlePtr io_handle = std::make_unique<IoSocketHandleImpl>();
   EXPECT_DEATH_LOG_TO_STDERR(
@@ -205,8 +206,9 @@ protected:
   }
 
   Event::SimulatedTimeSystem time_system_;
-  Api::ApiPtr api_;
   Event::DispatcherPtr dispatcher_;
+  Stats::IsolatedStoreImpl stats_store_;
+  Api::ApiPtr api_;
   Network::TcpListenSocket socket_{Network::Test::getAnyAddress(GetParam()), nullptr, true};
   Network::MockListenerCallbacks listener_callbacks_;
   Network::MockConnectionHandler connection_handler_;
@@ -917,7 +919,9 @@ TEST_P(ConnectionImplTest, ReadOnCloseTest) {
   EXPECT_CALL(*read_filter_, onData(_, _))
       .Times(1)
       .WillOnce(Invoke([&](Buffer::Instance& data, bool) -> FilterStatus {
-        EXPECT_EQ(buffer_size, data.length());
+        //EXPECT_EQ(buffer_size, data.length());
+        if (buffer_size != data.length())
+          throw EnvoyException("EXPECT_EQ failed");
         return FilterStatus::StopIteration;
       }));
 
@@ -940,7 +944,9 @@ TEST_P(ConnectionImplTest, EmptyReadOnCloseTest) {
   EXPECT_CALL(*read_filter_, onData(_, _))
       .Times(1)
       .WillOnce(Invoke([&](Buffer::Instance& data, bool) -> FilterStatus {
-        EXPECT_EQ(buffer_size, data.length());
+        //EXPECT_EQ(buffer_size, data.length());
+        if (buffer_size != data.length())
+          throw EnvoyException("EXPECT_EQ failed");
         dispatcher_->exit();
         return FilterStatus::StopIteration;
       }));
@@ -1618,7 +1624,9 @@ public:
 
     EXPECT_CALL(client_callbacks_, onEvent(ConnectionEvent::RemoteClose))
         .WillOnce(Invoke([&](Network::ConnectionEvent) -> void {
-          EXPECT_EQ(buffer_size, filter_seen);
+          //EXPECT_EQ(buffer_size, filter_seen);
+          if (buffer_size != filter_seen)
+            throw EnvoyException("EXPECT_EQ failed");
           dispatcher_->exit();
         }));
 
@@ -1666,7 +1674,7 @@ TEST_P(TcpClientConnectionImplTest, BadConnectNotConnRefused) {
   }
   ClientConnectionPtr connection =
       dispatcher_->createClientConnection(address, Network::Address::InstanceConstSharedPtr(),
-                                          Network::Test::createRawBufferSocket(), nullptr);
+                                         Network::Test::createRawBufferSocket(), nullptr);
   connection->connect();
   connection->noDelay(true);
   connection->close(ConnectionCloseType::NoFlush);
@@ -1715,6 +1723,5 @@ TEST_F(PipeClientConnectionImplTest, SkipSourceAddress) {
   connection->close(ConnectionCloseType::NoFlush);
 }
 
-} // namespace
 } // namespace Network
 } // namespace Envoy

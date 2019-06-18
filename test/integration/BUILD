@@ -7,7 +7,7 @@ load(
     "envoy_cc_test_library",
     "envoy_package",
     "envoy_proto_library",
-    "envoy_select_hot_restart",
+#    "envoy_select_hot_restart",
     "envoy_sh_test",
 )
 load(
@@ -96,35 +96,22 @@ envoy_cc_test(
     ],
 )
 
-envoy_cc_test(
-    name = "custom_cluster_integration_test",
-    srcs = ["custom_cluster_integration_test.cc"],
-    deps = [
-        ":http_integration_lib",
-        "//source/common/upstream:load_balancer_lib",
-        "//test/config:utility_lib",
-        "//test/integration/clusters:custom_static_cluster",
-        "//test/test_common:network_utility_lib",
-        "@envoy_api//envoy/api/v2:eds_cc",
-    ],
-)
-
 exports_files(["test_utility.sh"])
 
-envoy_sh_test(
-    name = "hotrestart_test",
-    srcs = envoy_select_hot_restart([
-        "hotrestart_test.sh",
-    ]),
-    data = [
-        "test_utility.sh",
-        "//source/exe:envoy-static",
-        "//test/common/runtime:filesystem_setup.sh",
-        "//test/common/runtime:filesystem_test_data",
-        "//test/config/integration:server_config_files",
-        "//tools:socket_passing",
-    ],
-)
+#envoy_sh_test(
+#    name = "hotrestart_test",
+#    srcs = envoy_select_hot_restart([
+#        "hotrestart_test.sh",
+#    ]),
+#    data = [
+#        "test_utility.sh",
+#        "//source/exe:envoy-static",
+#        "//test/common/runtime:filesystem_setup.sh",
+#        "//test/common/runtime:filesystem_test_data",
+#        "//test/config/integration:server_config_files",
+#        "//tools:socket_passing",
+#    ],
+#)
 
 envoy_sh_test(
     name = "run_envoy_test",
@@ -167,25 +154,6 @@ envoy_cc_test(
         "//source/extensions/filters/http/health_check:config",
         "//test/mocks/http:http_mocks",
         "//test/mocks/upstream:upstream_mocks",
-        "//test/test_common:utility_lib",
-    ],
-)
-
-envoy_cc_test(
-    name = "protocol_integration_test",
-    srcs = [
-        "protocol_integration_test.cc",
-    ],
-    # As this test has many H1/H2/v4/v6 tests it takes a while to run.
-    # Shard it enough to bring the run time in line with other integration tests.
-    shard_count = 3,
-    deps = [
-        ":http_protocol_integration_lib",
-        "//source/common/http:header_map_lib",
-        "//source/extensions/filters/http/buffer:config",
-        "//source/extensions/filters/http/dynamo:config",
-        "//source/extensions/filters/http/health_check:config",
-        "//test/integration/filters:random_pause_filter_lib",
         "//test/test_common:utility_lib",
     ],
 )
@@ -251,11 +219,7 @@ envoy_cc_test_library(
         "//source/extensions/filters/network/http_connection_manager:config",
         "//test/common/upstream:utility_lib",
         "//test/integration/filters:add_trailers_filter_config_lib",
-        "//test/integration/filters:call_decodedata_once_filter_config_lib",
-        "//test/integration/filters:decode_headers_return_stop_all_filter_config_lib",
-        "//test/integration/filters:encode_headers_return_stop_all_filter_config_lib",
         "//test/integration/filters:headers_only_filter_config_lib",
-        "//test/integration/filters:modify_buffer_filter_config_lib",
         "//test/integration/filters:passthrough_filter_config_lib",
         "//test/integration/filters:pause_filter_lib",
         "//test/integration/filters:response_metadata_filter_config_lib",
@@ -280,9 +244,6 @@ envoy_cc_test_library(
 envoy_cc_test(
     name = "idle_timeout_integration_test",
     srcs = ["idle_timeout_integration_test.cc"],
-    # As this test has many pauses for idle timeouts, it takes a while to run.
-    # Shard it enough to bring the run time in line with other integration tests.
-    shard_count = 2,
     deps = [
         ":http_protocol_integration_lib",
         "//test/test_common:test_time_lib",
@@ -353,12 +314,10 @@ envoy_cc_test_library(
         "//source/server:hot_restart_nop_lib",
         "//source/server:server_lib",
         "//source/server:test_hooks_lib",
-        "//test/common/runtime:utility_lib",
         "//test/common/upstream:utility_lib",
         "//test/config:utility_lib",
         "//test/mocks/buffer:buffer_mocks",
         "//test/mocks/server:server_mocks",
-        "//test/mocks/stats:stats_mocks",
         "//test/mocks/upstream:upstream_mocks",
         "//test/test_common:environment_lib",
         "//test/test_common:network_utility_lib",
@@ -507,19 +466,19 @@ envoy_cc_test(
     ],
 )
 
-envoy_cc_test(
-    name = "ratelimit_integration_test",
-    srcs = ["ratelimit_integration_test.cc"],
-    deps = [
-        ":http_integration_lib",
-        "//source/common/buffer:zero_copy_input_stream_lib",
-        "//source/common/grpc:codec_lib",
-        "//source/common/grpc:common_lib",
-        "//source/extensions/filters/http/ratelimit:config",
-        "//test/common/grpc:grpc_client_integration_lib",
-        "@envoy_api//envoy/service/ratelimit/v2:rls_cc",
-    ],
-)
+#envoy_cc_test(
+#    name = "ratelimit_integration_test",
+#    srcs = ["ratelimit_integration_test.cc"],
+#    deps = [
+#        ":http_integration_lib",
+#        "//source/common/buffer:zero_copy_input_stream_lib",
+#        "//source/common/grpc:codec_lib",
+#        "//source/common/grpc:common_lib",
+#        "//source/extensions/filters/http/ratelimit:config",
+#        "//test/common/grpc:grpc_client_integration_lib",
+#        "@envoy_api//envoy/service/ratelimit/v2:rls_cc",
+#    ],
+#)
 
 envoy_cc_test_library(
     name = "server_stats_interface",

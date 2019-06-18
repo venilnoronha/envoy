@@ -23,7 +23,7 @@ namespace Tls {
 namespace {
 
 constexpr absl::string_view NotReadyReason{"TLS error: Secret is not supplied by SDS"};
-
+	
 // This SslSocket will be used when SSL secret is not fetched from SDS server.
 class NotReadySslSocket : public Network::TransportSocket {
 public:
@@ -38,7 +38,7 @@ public:
     return {PostIoAction::Close, 0, false};
   }
   void onConnected() override {}
-  const Ssl::ConnectionInfo* ssl() const override { return nullptr; }
+  const Envoy::Ssl::ConnectionInfo* ssl() const override { return nullptr; }
 };
 } // namespace
 
@@ -66,10 +66,11 @@ void SslSocket::setTransportSocketCallbacks(Network::TransportSocketCallbacks& c
 
 Network::IoResult SslSocket::doRead(Buffer::Instance& read_buffer) {
   if (!handshake_complete_) {
+
     PostIoAction action = doHandshake();
     if (action == PostIoAction::Close || !handshake_complete_) {
       // end_stream is false because either a hard error occurred (action == Close) or
-      // the handshake isn't complete, so a half-close cannot occur yet.
+      // the handhshake isn't complete, so a half-close cannot occur yet.
       return {action, 0, false};
     }
   }
@@ -197,6 +198,7 @@ Network::IoResult SslSocket::doWrite(Buffer::Instance& write_buffer, bool end_st
 
   uint64_t total_bytes_written = 0;
   while (bytes_to_write > 0) {
+
     // TODO(mattklein123): As it relates to our fairness efforts, we might want to limit the number
     // of iterations of this loop, either by pure iterations, bytes written, etc.
 
@@ -206,6 +208,7 @@ Network::IoResult SslSocket::doWrite(Buffer::Instance& write_buffer, bool end_st
     ASSERT(bytes_to_write <= write_buffer.length());
     int rc = SSL_write(ssl_.get(), write_buffer.linearize(bytes_to_write), bytes_to_write);
     ENVOY_CONN_LOG(trace, "ssl write returns: {}", callbacks_->connection(), rc);
+
     if (rc > 0) {
       ASSERT(rc == static_cast<int>(bytes_to_write));
       total_bytes_written += rc;
@@ -309,12 +312,21 @@ const std::string& SslSocket::urlEncodedPemEncodedPeerCertificate() const {
   return cached_url_encoded_pem_encoded_peer_certificate_;
 }
 
+std::vector<std::string> SslSocket::uriSanPeerCertificate() const {
+  bssl::UniquePtr<X509> cert(SSL_get_peer_certificate(ssl_.get()));
+  if (!cert) {
+    return {};
+  }
+  return Utility::getSubjectAltNames(*cert, GEN_URI);
+}
+
 const std::string& SslSocket::urlEncodedPemEncodedPeerCertificateChain() const {
   if (!cached_url_encoded_pem_encoded_peer_cert_chain_.empty()) {
     return cached_url_encoded_pem_encoded_peer_cert_chain_;
   }
 
-  STACK_OF(X509)* cert_chain = SSL_get_peer_full_cert_chain(ssl_.get());
+//  STACK_OF(X509)* cert_chain = SSL_get_peer_full_cert_chain(ssl_.get());
+  STACK_OF(X509)* cert_chain = SSL_get_peer_cert_chain(ssl_.get());
   if (cert_chain == nullptr) {
     ASSERT(cached_url_encoded_pem_encoded_peer_cert_chain_.empty());
     return cached_url_encoded_pem_encoded_peer_cert_chain_;
@@ -337,14 +349,6 @@ const std::string& SslSocket::urlEncodedPemEncodedPeerCertificateChain() const {
             pem, {{"\n", "%0A"}, {" ", "%20"}, {"+", "%2B"}, {"/", "%2F"}, {"=", "%3D"}}));
   }
   return cached_url_encoded_pem_encoded_peer_cert_chain_;
-}
-
-std::vector<std::string> SslSocket::uriSanPeerCertificate() const {
-  bssl::UniquePtr<X509> cert(SSL_get_peer_certificate(ssl_.get()));
-  if (!cert) {
-    return {};
-  }
-  return Utility::getSubjectAltNames(*cert, GEN_URI);
 }
 
 std::vector<std::string> SslSocket::dnsSansPeerCertificate() const {

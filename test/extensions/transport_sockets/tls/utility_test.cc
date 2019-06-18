@@ -17,7 +17,6 @@ namespace Envoy {
 namespace Extensions {
 namespace TransportSockets {
 namespace Tls {
-namespace {
 
 TEST(UtilityTest, TestGetSubjectAlternateNamesWithDNS) {
   bssl::UniquePtr<X509> cert = readCertFromFile(TestEnvironment::substitute(
@@ -86,20 +85,22 @@ TEST(UtilityTest, TestDaysUntilExpirationWithNull) {
 TEST(UtilityTest, TestValidFrom) {
   bssl::UniquePtr<X509> cert = readCertFromFile(TestEnvironment::substitute(
       "{{ test_rundir }}/test/extensions/transport_sockets/tls/test_data/san_dns_cert.pem"));
-  const std::string formatted =
-      TestUtility::formatTime(Utility::getValidFrom(*cert), "%b %e %H:%M:%S %Y GMT");
-  EXPECT_EQ(TEST_SAN_DNS_CERT_NOT_BEFORE, formatted);
+  const time_t valid_from = std::chrono::system_clock::to_time_t(Utility::getValidFrom(*cert));
+  char buffer[25];
+  size_t len = strftime(buffer, sizeof(buffer), "%b %e %H:%M:%S %Y GMT", localtime(&valid_from));
+  ASSERT(len == sizeof(buffer) - 1);
+  EXPECT_EQ(TEST_SAN_DNS_CERT_NOT_BEFORE, std::string(buffer));
 }
 
 TEST(UtilityTest, TestExpirationTime) {
   bssl::UniquePtr<X509> cert = readCertFromFile(TestEnvironment::substitute(
       "{{ test_rundir }}/test/extensions/transport_sockets/tls/test_data/san_dns_cert.pem"));
-  const std::string formatted =
-      TestUtility::formatTime(Utility::getExpirationTime(*cert), "%b %e %H:%M:%S %Y GMT");
-  EXPECT_EQ(TEST_SAN_DNS_CERT_NOT_AFTER, formatted);
+  const time_t expiration = std::chrono::system_clock::to_time_t(Utility::getExpirationTime(*cert));
+  char buffer[25];
+  size_t len = strftime(buffer, sizeof(buffer), "%b %e %H:%M:%S %Y GMT", localtime(&expiration));
+  ASSERT(len == sizeof(buffer) - 1);
+  EXPECT_EQ(TEST_SAN_DNS_CERT_NOT_AFTER, std::string(buffer));
 }
-
-} // namespace
 } // namespace Tls
 } // namespace TransportSockets
 } // namespace Extensions

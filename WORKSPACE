@@ -19,4 +19,10 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_depe
 
 go_rules_dependencies()
 
-go_register_toolchains(go_version = GO_VERSION)
+go_register_toolchains(go_version = "host")
+
+new_local_repository(
+    name = "openssl",
+    path = "/usr/lib/x86_64-linux-gnu/",
+    build_file = "openssl.BUILD"
+)

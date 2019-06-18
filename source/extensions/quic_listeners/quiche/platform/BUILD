@@ -144,7 +144,8 @@ envoy_cc_library(
         "abseil_str_format",
         "abseil_synchronization",
         "abseil_time",
-        "ssl",
+    "ssl",
+    "openssl_cbs_lib",
     ],
     visibility = ["//visibility:public"],
     deps = envoy_select_quiche([

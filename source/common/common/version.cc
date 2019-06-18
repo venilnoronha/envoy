@@ -23,6 +23,6 @@ std::string VersionInfo::version() {
 #else
                      "DEBUG",
 #endif
-                     ENVOY_SSL_VERSION);
+                     "OpenSSL_1_1_1");
 }
 } // namespace Envoy

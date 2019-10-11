@@ -218,11 +218,6 @@ config_setting(
 )
 
 config_setting(
-    name = "boringssl_disabled",
-    values = {"define": "boringssl=disabled"},
-)
-
-config_setting(
     name = "enable_quiche",
     values = {"define": "quiche=enabled"},
 )
@@ -356,9 +351,4 @@ alias(
             "//conditions:default": ":darwin_x86_64",
         },
     ),
-)
-
-alias(
-    name = "crypto_utility_lib",
-    actual = "//source/extensions/common/crypto:utility_lib",
 )

@@ -8,11 +8,12 @@ load(
 
 envoy_package()
 
-envoy_cc_test(
+envoy_extension_cc_test(
     name = "utility_test",
     srcs = [
         "utility_test.cc",
     ],
+    extension_name = "envoy.extensions.common.crypto.utility_lib",
     external_deps = [
         "ssl",
     ],

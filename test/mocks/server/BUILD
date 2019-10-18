@@ -5,11 +5,16 @@ load(
     "envoy_cc_mock",
     "envoy_package",
 )
+load(
+    "//test/extensions:extensions_build_system.bzl",
+    "envoy_extension_cc_test_library",
+)
 
 envoy_package()
 
-envoy_cc_mock(
+envoy_extension_cc_test_library(
     name = "server_mocks",
+    extension_name = "envoy.extensions.transport_sockets.tls.context_lib",
     srcs = ["mocks.cc"],
     hdrs = ["mocks.h"],
     deps = [
@@ -31,7 +36,6 @@ envoy_cc_mock(
         "//source/common/secret:secret_manager_impl_lib",
         "//source/common/singleton:manager_impl_lib",
         "//source/common/stats:stats_lib",
-        "//source/extensions/transport_sockets/tls:context_lib",
         "//test/mocks/access_log:access_log_mocks",
         "//test/mocks/api:api_mocks",
         "//test/mocks/http:http_mocks",

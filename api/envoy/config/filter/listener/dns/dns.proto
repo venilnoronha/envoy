@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package envoy.config.filter.listener.udp;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/wrappers.proto";
+
+import "validate/validate.proto";
+
+// [#protodoc-title: DNS Filter]
+// The configuration protobuf definition for the DNS filter. The DNS filter handles requests for A,
+// AAAA and SRV questions. Queries for other types of records are not handled.
+message DnsConfig {
+
+  // Client specific settings of the DNS filter where the filter is acting as a client
+  ClientSettings client_settings = 1;
+
+  // Server specific settings of the DNS filter where the filter is acting as a dns server
+  ServerSettings server_settings = 2;
+}
+
+// Client specific settings of the DNS filter where the filter is acting as a dns client
+// issuing dns requests to other name servers for unknown domain names.
+message ClientSettings {
+  // The timeout in seconds for recursive DNS queries issued to name_servers
+  // The default value if not specified is 5 seconds
+  google.protobuf.Duration recursive_query_timeout = 1;
+}
+
+// Server specific settings of the DNS filter where the filter is acting as a dns server
+// responding to dns requests for known domain names.
+message ServerSettings {
+
+  // A list of known domain names that the server handles requests for. When the incoming DNS 
+  // request has a suffix that matches an entry here, the dns_entries are looked up for the 
+  // matching cluster name. Each host endpoint in the cluster is converted to an "A" or "AAAA" 
+  // record and added to the response.
+  // If the cluster is not present, NXDOMAIN is returned in the response.
+  // 
+  // If the DNS request is for a domain name that the filter does not handle, the query is made
+  // using the c-ares DNS client to one of the name servers specified in /etc/resolv.conf file.
+  //
+  repeated string known_domainname_suffixes = 1
+  [(validate.rules).repeated = {min_items:1}];
+
+  // The TTL in seconds that is set on DNS query responses
+  // The default value if not specified is 5 seconds
+  google.protobuf.Duration ttl = 2;
+
+  // Provides the mapping from a dns name to a cluster name to look up the endpoint address and 
+  // respond back to the dns request
+  //
+  // The key is the fully qualified domain name of the incoming dns request.
+  // The value is the matching cluster name:- All the lb endpoints from the cluster is returned in 
+  // the response to the request.
+  map<string, string> dns_entries = 3;
+}

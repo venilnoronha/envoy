@@ -1,0 +1,66 @@
+#pragma once
+
+#include <list>
+#include <memory>
+
+#include "envoy/network/filter.h"
+#include "envoy/network/listener.h"
+#include "envoy/network/dns.h"
+
+#include "common/common/logger.h"
+
+#include "extensions/filters/listener/dns/dns_codec.h"
+#include "extensions/filters/listener/dns/dns_server.h"
+
+namespace Envoy {
+
+namespace Upstream {
+class ClusterManager;
+}
+
+namespace Event {
+class Dispatcher;
+}
+
+namespace Extensions {
+namespace ListenerFilters {
+namespace Dns {
+
+class Config;
+
+/**
+ * Implements the Dns filter.
+ */
+class DnsFilter : public Network::UdpListenerReadFilter, Logger::Loggable<Logger::Id::filter> {
+public:
+  DnsFilter(std::unique_ptr<Config>&& config, Network::UdpReadFilterCallbacks& callbacks,
+            Upstream::ClusterManager& cluster_manager);
+
+  virtual DecoderPtr createDecoder() PURE;
+
+  // Network::UdpListenerReadFilter
+  void onData(Network::UdpRecvData& data) override;
+
+private:
+  void doDecode(Buffer::Instance& buffer, Network::Address::InstanceConstSharedPtr const& from, Network::Address::InstanceConstSharedPtr const& local_addr);
+
+  void onResolveComplete(const Formats::ResponseMessageSharedPtr& dns_response,
+                         Buffer::Instance& serialized_response);
+
+  std::unique_ptr<Config> config_;
+  std::unique_ptr<DnsServer> dns_server_;
+  DecoderPtr decoder_;
+};
+
+class ProdDnsFilter : public DnsFilter {
+public:
+  using DnsFilter::DnsFilter;
+
+  // DnsFilter
+  DecoderPtr createDecoder() override;
+};
+
+} // namespace Dns
+} // namespace ListenerFilters
+} // namespace Extensions
+} // namespace Envoy

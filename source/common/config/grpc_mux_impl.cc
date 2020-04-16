@@ -219,6 +219,10 @@ void GrpcMuxImpl::onStreamEstablished() {
 
 void GrpcMuxImpl::onEstablishmentFailure() {
   for (const auto& api_state : api_state_) {
+    if (api_state.second.paused_) {
+      ENVOY_LOG(debug, "Resetting api_state.second.paused");
+      api_state.second.paused_ = false;
+    }
     for (auto watch : api_state.second.watches_) {
       watch->callbacks_.onConfigUpdateFailed(
           Envoy::Config::ConfigUpdateFailureReason::ConnectionFailure, nullptr);

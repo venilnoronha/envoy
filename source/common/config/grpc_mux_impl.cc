@@ -218,7 +218,7 @@ void GrpcMuxImpl::onStreamEstablished() {
 }
 
 void GrpcMuxImpl::onEstablishmentFailure() {
-  for (const auto& api_state : api_state_) {
+  for (auto& api_state : api_state_) {
     if (api_state.second.paused_) {
       ENVOY_LOG(debug, "Resetting api_state.second.paused");
       api_state.second.paused_ = false;

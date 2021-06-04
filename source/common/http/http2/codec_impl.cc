@@ -951,7 +951,9 @@ int ConnectionImpl::onInvalidFrame(int32_t stream_id, int error_code) {
     stream->setDetails(Http2ResponseCodeDetails::get().errorDetails(error_code));
   }
 
-  if (error_code == NGHTTP2_ERR_HTTP_HEADER || error_code == NGHTTP2_ERR_HTTP_MESSAGING) {
+  if (error_code == NGHTTP2_ERR_REFUSED_STREAM) {
+    return 0;
+  } else if (error_code == NGHTTP2_ERR_HTTP_HEADER || error_code == NGHTTP2_ERR_HTTP_MESSAGING) {
     stats_.rx_messaging_error_.inc();
 
     if (stream_error_on_invalid_http_messaging_) {
